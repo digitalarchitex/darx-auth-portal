@@ -7,28 +7,34 @@ export default function LoginPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const initMemberstack = async () => {
-      // Wait for Memberstack to load
-      if (typeof window === 'undefined') return;
+    const waitForMemberstack = () => {
+      return new Promise<any>((resolve) => {
+        let attempts = 0;
+        const maxAttempts = 50; // 5 seconds
 
-      const checkMemberstack = setInterval(() => {
-        if ((window as any).$memberstackDom) {
-          clearInterval(checkMemberstack);
-          initAuth();
-        }
-      }, 100);
+        const checkInterval = setInterval(() => {
+          attempts++;
+          console.log(`Attempt ${attempts}: Checking for Memberstack...`);
 
-      setTimeout(() => {
-        clearInterval(checkMemberstack);
-        if (!(window as any).$memberstackDom) {
-          setError('Failed to load authentication. Please refresh the page.');
-          setLoading(false);
-        }
-      }, 5000);
+          if ((window as any).$memberstackDom) {
+            clearInterval(checkInterval);
+            console.log('✅ Found $memberstackDom');
+            resolve((window as any).$memberstackDom);
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            console.error('❌ Timeout: Memberstack not found after 5 seconds');
+            setError('Failed to load authentication. Please refresh the page.');
+            setLoading(false);
+            resolve(null);
+          }
+        }, 100);
+      });
     };
 
     const initAuth = async () => {
-      const memberstack = (window as any).$memberstackDom;
+      const memberstack = await waitForMemberstack();
+
+      if (!memberstack) return;
 
       try {
         // Check if already authenticated
@@ -39,6 +45,7 @@ export default function LoginPage() {
           handleAuthenticatedUser(member.auth.email);
         } else {
           // Not authenticated - show login form
+          console.log('Not authenticated - showing login form');
           setLoading(false);
         }
       } catch (error) {
@@ -47,7 +54,7 @@ export default function LoginPage() {
       }
     };
 
-    initMemberstack();
+    initAuth();
   }, []);
 
   const handleAuthenticatedUser = async (email: string) => {
@@ -111,6 +118,67 @@ export default function LoginPage() {
       if (pollInterval) clearInterval(pollInterval);
     };
   }, []);
+
+  const handleGoogleLogin = async () => {
+    try {
+      setError('');
+      setLoading(true);
+
+      const memberstack = (window as any).$memberstackDom;
+      if (!memberstack) {
+        throw new Error('Memberstack not loaded');
+      }
+
+      console.log('Starting Google OAuth...');
+
+      // Trigger Google OAuth
+      const result = await memberstack.loginWithProvider({ provider: 'google' });
+
+      console.log('Google OAuth result:', result);
+
+      if (result && result.data && result.data.member) {
+        handleAuthenticatedUser(result.data.member.auth.email);
+      }
+    } catch (error: any) {
+      console.error('Google login error:', error);
+      setError(error.message || 'Failed to sign in with Google');
+      setLoading(false);
+    }
+  };
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const email = (document.getElementById('email') as HTMLInputElement).value;
+    const password = (document.getElementById('password') as HTMLInputElement).value;
+
+    try {
+      setError('');
+      setLoading(true);
+
+      const memberstack = (window as any).$memberstackDom;
+      if (!memberstack) {
+        throw new Error('Memberstack not loaded');
+      }
+
+      console.log('Signing in with email:', email);
+
+      const result = await memberstack.loginMemberEmailPassword({
+        email,
+        password,
+      });
+
+      console.log('Login result:', result);
+
+      if (result && result.data && result.data.member) {
+        handleAuthenticatedUser(result.data.member.auth.email);
+      }
+    } catch (error: any) {
+      console.error('Email login error:', error);
+      setError(error.message || 'Invalid email or password');
+      setLoading(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -202,12 +270,12 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Form - Always in DOM for Memberstack to bind */}
-            <form data-ms-form="signin" className={loading ? 'opacity-0 pointer-events-none' : ''}>
+            {/* Form - Use JavaScript API like signup page */}
+            <form onSubmit={handleEmailLogin} className={loading ? 'opacity-0 pointer-events-none' : ''}>
               {/* Google OAuth Button */}
               <button
                 type="button"
-                data-ms-action="google-oauth"
+                onClick={handleGoogleLogin}
                 className="w-full mb-4 py-3 px-4 border-2 border-gray-300 rounded-lg font-semibold text-gray-700 hover:border-gray-400 hover:bg-gray-50 transition-all flex items-center justify-center gap-3"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -237,7 +305,6 @@ export default function LoginPage() {
                   </label>
                   <input
                     id="email"
-                    data-ms-member="email"
                     type="email"
                     placeholder="you@example.com"
                     required
@@ -250,7 +317,6 @@ export default function LoginPage() {
                   </label>
                   <input
                     id="password"
-                    data-ms-member="password"
                     type="password"
                     placeholder="••••••••"
                     required
@@ -259,8 +325,8 @@ export default function LoginPage() {
                 </div>
                 <button
                   type="submit"
-                  data-ms-action="signin"
-                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:shadow-lg hover:scale-[1.02] transition-all"
+                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loading}
                 >
                   Sign in
                 </button>
