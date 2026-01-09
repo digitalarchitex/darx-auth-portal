@@ -203,9 +203,10 @@ export default function LoginPage() {
             )}
 
             {/* Form - Always in DOM for Memberstack to bind */}
-            <div data-ms-form="signin" className={loading ? 'opacity-0 pointer-events-none' : ''}>
+            <form data-ms-form="signin" className={loading ? 'opacity-0 pointer-events-none' : ''}>
               {/* Google OAuth Button */}
               <button
+                type="button"
                 data-ms-action="google-oauth"
                 className="w-full mb-4 py-3 px-4 border-2 border-gray-300 rounded-lg font-semibold text-gray-700 hover:border-gray-400 hover:bg-gray-50 transition-all flex items-center justify-center gap-3"
               >
@@ -257,13 +258,14 @@ export default function LoginPage() {
                   />
                 </div>
                 <button
+                  type="submit"
                   data-ms-action="signin"
                   className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:shadow-lg hover:scale-[1.02] transition-all"
                 >
                   Sign in
                 </button>
               </div>
-            </div>
+            </form>
 
             <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-100">
               <div className="flex items-start gap-3">
