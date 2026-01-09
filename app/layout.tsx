@@ -18,8 +18,9 @@ export default function RootLayout({
         <Script
           src="https://static.memberstack.com/scripts/v2/memberstack.js"
           strategy="beforeInteractive"
-          data-memberstack-app="app_cmg8prwjm003p0sr1dglq1u4m"
-          data-memberstack-domain="https://memberstack-client.digitalarchitex.com"
+          data-memberstack-app={process.env.NEXT_PUBLIC_MEMBERSTACK_APP}
+          data-memberstack-domain={process.env.NEXT_PUBLIC_MEMBERSTACK_DOMAIN}
+          data-memberstack-public-key={process.env.NEXT_PUBLIC_MEMBERSTACK_PUBLIC_KEY}
         />
       </head>
       <body>{children}</body>
