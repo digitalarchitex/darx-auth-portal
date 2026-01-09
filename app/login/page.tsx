@@ -37,6 +37,15 @@ export default function LoginPage() {
       if (!memberstack) return;
 
       try {
+        // Clear any stale OAuth sessions first to prevent auto-redirect
+        // Check if there's a partial/failed OAuth flow
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('error')) {
+          console.log('OAuth error detected, clearing session');
+          // Clear the error from URL
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+
         // Check if already authenticated
         const { data: member } = await memberstack.getCurrentMember();
 
@@ -88,35 +97,12 @@ export default function LoginPage() {
     }
   };
 
-  // Memberstack v2: Poll for auth changes after page load
+  // Memberstack v2: Poll for auth changes after user action
+  // NOTE: Disabled auto-polling to prevent automatic redirects
+  // Polling will only happen after manual login attempt
   useEffect(() => {
-    let pollInterval: NodeJS.Timeout;
-
-    const pollAuthStatus = async () => {
-      if (typeof window === 'undefined' || !(window as any).$memberstackDom) return;
-
-      const memberstack = (window as any).$memberstackDom;
-      try {
-        const { data: member } = await memberstack.getCurrentMember();
-        if (member) {
-          clearInterval(pollInterval);
-          console.log('Member authenticated:', member.auth.email);
-          handleAuthenticatedUser(member.auth.email);
-        }
-      } catch (error) {
-        // Not authenticated yet
-      }
-    };
-
-    // Start polling after a short delay (to allow form submission)
-    setTimeout(() => {
-      pollInterval = setInterval(pollAuthStatus, 1000);
-    }, 500);
-
-    // Cleanup
-    return () => {
-      if (pollInterval) clearInterval(pollInterval);
-    };
+    // Don't auto-poll to prevent unwanted redirects
+    // User must explicitly click login buttons
   }, []);
 
   const handleGoogleLogin = async () => {
