@@ -12,15 +12,13 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const memberstackKey = process.env.NEXT_PUBLIC_MEMBERSTACK_PUBLIC_KEY;
-
   return (
     <html lang="en">
       <head>
         <Script
-          src="https://static.memberstack.com/scripts/v1/memberstack.js"
+          src="https://static.memberstack.com/scripts/v2/memberstack.js"
           strategy="beforeInteractive"
-          data-memberstack-id={memberstackKey}
+          data-memberstack-app="app_cmg8prwjm003p0sr1dglq1u4m"
         />
       </head>
       <body>{children}</body>
