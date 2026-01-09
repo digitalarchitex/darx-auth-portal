@@ -19,11 +19,36 @@ export async function POST(request: NextRequest) {
     const isAdmin = adminUsers.includes(normalizedEmail);
 
     if (isAdmin) {
-      // Admin gets neutral form with dropdown
-      // For now, we'll redirect to a placeholder - you'd generate a token here
+      // Admin gets access to the onboarding portal on darx-site-generator
+      // Call the site generator's check-onboarding-status to get admin token
+      const siteGeneratorUrl = process.env.SITE_GENERATOR_URL || 'https://darx-site-generator-474964350921.us-central1.run.app';
+
+      try {
+        const response = await fetch(`${siteGeneratorUrl}/onboard/check-onboarding-status`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email: normalizedEmail })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.redirect_url) {
+          // Return the full URL with the token
+          return NextResponse.json({
+            is_admin: true,
+            redirect_url: `${siteGeneratorUrl}${data.redirect_url}`
+          });
+        }
+      } catch (error) {
+        console.error('Error calling site generator:', error);
+      }
+
+      // Fallback to login page if token generation fails
       return NextResponse.json({
         is_admin: true,
-        redirect_url: `/onboard?admin=true`
+        redirect_url: `${siteGeneratorUrl}/onboard/login`
       });
     }
 
